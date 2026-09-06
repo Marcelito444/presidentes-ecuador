@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Línea de Tiempo - Presidentes de Ecuador</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 1rem; background: #f4f4f9; }
+    /* Eliminamos el height estático del CSS, ahora lo controlará JS */
+    .chart-container { position: relative; width: 100%; max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h1 {text-align: center;}
+    .anotaciones { text-align: center; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Cronología de presidentes de la era republicana de Ecuador</h1>
+  <div class="chart-container" id="chart-wrapper">
+    <canvas id="timeline"></canvas>
+  </div>
+  <p class="anotaciones"><strong>^ De facto</strong></p>
+  <p class="anotaciones"><strong>* Electo, no asume</strong></p>
+  <p class="anotaciones"><strong>** Dictadura</strong></p>
+  <p class="anotaciones"><strong>*** Presidencia que tornó en dictadura</strong></p>
+  <p class="anotaciones"><strong>+ Interino o encargado</strong></p>
+  <p class="anotaciones"><strong>++ Subrogación</strong></p>
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1/dist/chartjs-adapter-luxon.min.js"></script>
+
+  <script>
+  const people = [
+    {
+      name: "^ Juan José Flores",
+      life: { start: "1800-07-19", end: "1864-10-01" },
+      terms: [
+        { start: "1830-05-13", end: "1834-09-10" }
+      ]
+    },
+    {
+      name: "Vicente Rocafuerte y Bejarano",
+      life: { start: "1783-05-01", end: "1847-05-16" },
+      terms: [
+        { start: "1835-01-18", end: "1839-01-31" }
+      ]
+    },
+    {
+      name: "electo 2 veces: Juan José Flores",
+      life: { start: "1800-07-19", end: "1864-10-01" },
+      terms: [
+        { start: "1839-01-31", end: "1843-01-15" },
+        { start: "1843-04-01", end: "1845-06-18" }
+      ]
+    },
+    {
+      name: "Vicente Ramón Roca Rodríguez",
+      life: { start: "1792-09-02", end: "1858-02-23" },
+      terms: [
+        { start: "1845-12-08", end: "1849-10-14" }
+      ]
+    },
+    {
+      name: "Manuel de Ascázubi y Matheu",
+      life: { start: "1804-12-30", end: "1876-12-25" },
+      terms: [
+        { start: "1849-10-15", end: "1850-06-10" }
+      ]
+    },
+    {
+      name: "Diego Noboa y Arteta",
+      life: { start: "1789-04-15", end: "1870-11-03" },
+      terms: [
+        { start: "1850-06-10", end: "1851-07-24" }
+      ]
+    },
+    {
+      name: "José María Urbina y Viteri",
+      life: { start: "1808-03-19", end: "1891-09-04" },
+      terms: [
+        { start: "1851-07-24", end: "1856-10-15" } // Corregido: antes terminaba en 1850
+      ]
+    },
+    {
+      name: "Francisco Robles y García",
+      life: { start: "1811-12-30", end: "1893-12-25" },
+      terms: [
+        { start: "1856-10-15", end: "1859-08-31" }
+      ]
+    },  
+    {
+      name: "Supremo Gobierno Provisional de Quito",
+      life: {},
+      terms: [
+        { start: "1859-08-31", end: "1859-09-17" }      ]
+    },
+    {
+      name: "Gabriel García Moreno",
+      life: { start: "1821-12-24", end: "1875-08-06" },
+      terms: [
+        { start: "1859-09-17", end: "1865-08-30" }
+      ]
+    },
+    {
+      name: "Jerónimo Carrión Palacio",
+      life: { start: "1804-07-06", end: "1873-05-05" },
+      terms: [
+        { start: "1865-09-01", end: "1867-11-06" }
+      ]
+    },
+    {
+      name: "++ Pedro José de Arteta y Calisto",
+      life: { start: "1797-01-01", end: "1873-05-05" },
+      terms: [
+        { start: "1867-11-06", end: "1868-01-20" }
+      ]
+    },
+    {
+      name: "Javier Espinosa y Espinosa",
+      life: { start: "1815-12-02", end: "1870-09-04" },
+      terms: [
+        { start: "1868-01-20", end: "1869-01-16" }
+      ]
+    },
+    {
+      name: "^ Gabriel García Moreno",
+      life: { start: "1821-12-24", end: "1875-08-06" },
+      terms: [
+        { start: "1869-01-16", end: "1869-05-16" },
+      ]
+    },
+    {
+      name: "* Gabriel García Moreno",
+      life: { start: "1821-12-24", end: "1875-08-06" },
+      terms: [
+        { start: null, end: null }
+      ]
+    },
+    {
+      name: "++ Manuel de Ascázubi y Matheu",
+      life: { start: "1804-12-30", end: "1876-12-25" },
+      terms: [
+        { start: "1869-05-16", end: "1869-08-10" }
+      ]
+    },
+    {
+      name: "2ª vez electo: Gabriel García Moreno",
+      life: { start: "1821-12-24", end: "1875-08-06" },
+      terms: [
+        { start: "1869-08-10", end: "1875-08-06" }
+      ]
+    },
+    {
+      name: "++ Francisco Javier León Chiriboga",
+      life: { start: "1832-10-13", end: "1880-09-10" },
+      terms: [
+        { start: "1875-09-06", end: "1875-09-08" }
+      ]
+    },
+    {
+      name: "++ José Javier Eguiguren y Riofrío",
+      life: { start: "1815-12-03", end: "1884-12-30" },
+      terms: [
+        { start: "1875-10-08", end: "1875-12-09" }
+      ]
+    },
+    {
+      name: "Antonio Borrero y Cortázar",
+      life: { start: "1827-10-29", end: "1911-10-09" },
+      terms: [
+        { start: "1875-12-09", end: "1876-12-18" }
+      ]
+    },
+    {
+      name: "^, electo 2 veces, ^ Ignacio de Veintemilla y Villacís",
+      life: { start: "1828-07-31", end: "1908-07-19" },
+      terms: [
+        { start: "1876-12-18", end: "1883-07-09" }
+      ]
+    },
+     {
+      name: "Junta de Gobierno Provisional",
+      life: {},
+      terms: [
+        { start: "1883-07-09", end: "1883-10-11" }
+      ]
+    },
+    {
+      name: "electo 2 veces: José María Plácido Caamaño",
+      life: { start: "1837-10-05", end: "1900-12-31" },
+      terms: [
+        { start: "1883-10-15", end: "1888-06-30" }
+      ]
+    },
+    {
+      name: "Antonio Flores Jijón",
+      life: { start: "1833-10-23", end: "1915-08-30" },
+      terms: [
+        { start: "1888-07-01", end: "1892-06-30" }
+      ]
+    },
+    {
+      name: "Luis Cordero Crespo",
+      life: { start: "1833-04-06", end: "1912-01-30" },
+      terms: [
+        { start: "1892-07-01", end: "1895-04-16" }
+      ]
+    },
+    {
+      name: "++ Vicente Lucio Salazar y Cabal",
+      life: { start: "1832-12-20", end: "1896-02-14" },
+      terms: [
+        { start: "1895-04-16", end: "1895-08-23" }
+      ]
+    },
+    {
+      name: "^, electo 2 veces: Eloy Alfaro Delgado",
+      life: { start: "1842-06-25", end: "1912-01-28" },
+      terms: [
+        { start: "1895-08-23", end: "1901-09-01" }
+      ]
+    },
+    {
+      name: "Leónidas Plaza y Gutiérrez",
+      life: { start: "1865-04-18", end: "1933-11-17" },
+      terms: [
+        { start: "1901-09-01", end: "1905-09-01" }
+      ]
+    },
+    {
+      name: "Lizardo García Sorroza",
+      life: { start: "1844-04-26", end: "1937-05-29" },
+      terms: [
+        { start: "1905-09-01", end: "1906-01-16" }
+      ]
+    },
+     {
+      name: "+, reelecto 2 veces: Eloy Alfaro Delgado",
+      life: { start: "1842-06-25", end: "1912-01-28" },
+      terms: [
+        { start: "1906-01-16", end: "1911-08-12"}
+      ]
+    },
+    {
+      name: "++ Carlos Freile Zaldumbide",
+      life: { start: "1856-05-18", end: "1928-08-28" },
+      terms: [
+        { start: "1911-08-12", end: "1911-09-01" },
+        { start: "1911-12-21", end: "1912-03-06" }
+      ]
+    },
+    {
+      name: "Emilio Estrada Carmona",
+      life: { start: "1855-05-28", end: "1911-12-21" },
+      terms: [
+        { start: "1911-09-01", end: "1911-12-06" }
+      ]
+    },
+    {
+      name: "++ 2ª vez: Carlos Freile Zaldumbide",
+      life: { start: "1856-05-18", end: "1928-08-28" },
+      terms: [
+        { start: "1911-12-21", end: "1912-03-06" }
+      ]
+    },
+    {
+      name: "++ Francisco Andrade Marín",
+      life: { start: "1841-01-01", end: "1935-12-21" },
+      terms: [
+        { start: "1912-03-06", end: "1912-08-10" }
+      ]
+    },
+    {
+      name: "+, ++ Alfredo Baquerizo Moreno",
+      life: { start: "1859-09-28", end: "1951-03-20" },
+      terms: [
+        { start: "1912-08-10", end: "1912-09-01" }
+      ]
+    },
+    {
+      name: "2ª vez: Leónidas Plaza y Gutiérrez",
+      life: { start: "1865-04-18", end: "1933-11-17" },
+      terms: [
+        { start: "1912-09-01", end: "1916-09-01"}
+      ]
+    },
+    {
+      name: "electo: Alfredo Baquerizo Moreno",
+      life: { start: "1859-09-28", end: "1951-03-20" },
+      terms: [
+        { start: "1916-09-01", end: "1920-09-01"}
+      ]
+    },
+     {
+      name: "José Luis Tamayo Terán",
+      life: { start: "1858-07-29", end: "1947-07-07" },
+      terms: [
+        { start: "1920-09-01", end: "1924-09-01" }
+      ]
+    },
+     {
+      name: "Gonzalo Córdova y Rivera",
+      life: { start: "1863-07-15", end: "1928-04-13" },
+      terms: [
+        { start: "1924-09-01", end: "1925-07-09" }
+      ]
+    },
+     {
+      name: "1.ª Junta de Gobierno Provisional",
+      life: { start: "1925-07-10", end: "1926-01-10" },
+      terms: [
+        { start: "1925-07-10", end: "1926-01-10" }
+      ]
+    },
+     {
+      name: "2.ª Junta de Gobierno Provisional",
+      life: { start: "1926-01-10", end: "1926-04-01" },
+      terms: [
+        { start: "1926-01-10", end: "1926-04-01" }
+      ]
+    },
+     {
+      name: "Isidro Ayora Cueva",
+      life: { start: "1879-08-31", end: "1978-03-22" },
+      terms: [
+        { start: "1926-04-01", end: "1931-08-24" }
+      ]
+    },
+     {
+      name: "Luis Larrea Alba",
+      life: { start: "1894-10-25", end: "1979-04-17" },
+      terms: [
+        { start: "1931-08-24", end: "1931-10-15" }
+      ]
+    },
+    {
+      name: "++ Alfredo Baquerizo Moreno",
+      life: { start: "1859-09-28", end: "1951-03-20" },
+      terms: [
+        { start: "1931-10-15", end: "1932-09-28"}
+      ]
+    },
+     {
+      name: "++ Carlos Freile Larrea",
+      life: { start: "1876-01-01", end: "1942-04-23" },
+      terms: [
+        { start: "1932-08-28", end: "1932-09-01" }
+      ]
+    },
+     {
+      name: "* Neptalí Bonifaz Ascázubi",
+      life: { start: "1870-12-29", end: "1953-08-23" },
+      terms: [] // <-- CORRECCIÓN: Arreglo vacío en lugar de { }
+    },
+    {
+      name: "++ Alberto Guerrero Martínez",
+      life: { start: "1878-06-28", end: "1941-05-21" },
+      terms: [
+        { start: "1932-09-02", end: "1932-12-05" }
+      ]
+    },
+    {
+      name: "Juan de Dios Martínez Mera",
+      life: { start: "1875-03-08", end: "1955-10-27" },
+      terms: [
+        { start: "1932-12-05", end: "1933-10-20" }
+      ]
+    },
+    {
+      name: "++ Abelardo Montalvo Alvear",
+      life: { start: "1876-03-13", end: "1950-12-01" },
+      terms: [
+        { start: "1933-10-21", end: "1934-08-31" }
+      ]
+    },
+    {
+      name: "1ª vez: José María Velasco Ibarra",
+      life: { start: "1893-03-19", end: "1979-03-30" },
+      terms: [
+        { start: "1934-09-01", end: "1935-08-21" }
+      ]
+    },
+    {
+      name: "++ Antonio Pons Campuzano",
+      life: { start: "1897-11-20", end: "1980-01-12" },
+      terms: [
+        { start: "1935-08-21", end: "1935-09-26" }
+      ]
+    },
+    {
+      name: "**, + Federico Páez Chiriboga",
+      life: { start: "1877-06-04", end: "1974-02-09" },
+      terms: [
+        { start: "1935-09-26", end: "1937-10-23" }
+      ]
+    },
+    {
+      name: "^ Alberto Enríquez Gallo",
+      life: { start: "1894-07-24", end: "1962-07-13" },
+      terms: [
+        { start: "1937-10-23", end: "1938-08-10" }
+      ]
+    },
+    {
+      name: "+ Manuel María Borrero",
+      life: { start: "1883-05-10", end: "1975-06-07" },
+      terms: [
+        { start: "1938-08-10", end: "1938-12-02" }
+      ]
+    },
+    {
+      name: "Aurelio Mosquera Narváez",
+      life: { start: "1883-08-02", end: "1939-11-17" },
+      terms: [
+        { start: "1938-12-02", end: "1939-11-17" }
+      ]
+    },
+    {
+      name: "++ Carlos Arroyo del Río",
+      life: { start: "1893-11-27", end: "1969-09-31" },
+      terms: [
+        { start: "1939-11-17", end: "1939-12-11" }
+      ]
+    },
+    {
+      name: "++ Andrés Fernández de Córdova Nieto",
+      life: { start: "1892-05-08", end: "1983-10-03" },
+      terms: [
+        { start: "1939-12-11", end: "1940-08-10" }
+      ]
+    },
+    {
+      name: "++ Julio Enrique Moreno Peñaherrera",
+      life: { start: "1879-10-20", end: "1952-04-02" },
+      terms: [
+        { start: "1940-08-10", end: "1940-09-01" }
+      ]
+    },
+    {
+      name: "1º vez electo: Carlos Alberto Arroyo del Río",
+      life: { start: "1893-11-27", end: "1969-10-31" },
+      terms: [
+        { start: "1940-09-01", end: "1944-05-29" }
+      ]
+    },
+    {
+      name: "Junta de gobierno revolución ´La Gloriosa´",
+      life: {},
+      terms: [
+        { start: "1944-05-29", end: "1944-05-31" }
+      ]
+    },
+    {
+      name: "^, luego electo: José María Velasco Ibarra",
+      life: { start: "1893-03-19", end: "1979-03-30" },
+      terms: [
+        { start: "1944-05-31", end: "1947-08-23" }
+      ]
+    },
+    {
+      name: "+, ^ Carlos Mancheno Cajas",
+      life: { start: "1902-10-09", end: "1996-10-11" },
+      terms: [
+        { start: "1947-08-23", end: "1947-09-03" }
+      ]
+    },
+    {
+      name: "++ Mariano Suárez Veintimilla",
+      life: { start: "1897-06-08", end: "1980-10-23" },
+      terms: [
+        { start: "1947-09-03", end: "1947-09-17" }
+      ]
+    },
+    {
+      name: "++ Carlos Julio Arosemena Tola",
+      life: { start: "1888-04-12", end: "1952-02-20" },
+      terms: [
+        { start: "1947-09-17", end: "1948-08-31" }
+      ]
+    },
+    {
+      name: "Galo Plaza Lasso",
+      life: { start: "1906-02-17", end: "1987-01-28" },
+      terms: [
+        { start: "1948-09-01", end: "1952-08-31" }
+      ]
+    },
+    {
+      name: "3ª vez: José María Velasco Ibarra",
+      life: { start: "1893-03-19", end: "1979-03-30" },
+      terms: [
+        { start: "1952-09-01", end: "1956-08-31" }
+      ]
+    },
+    {
+      name: "Camilo Ponce Enríquez",
+      life: { start: "1912-01-31", end: "1976-09-13" },
+      terms: [
+        { start: "1956-09-01", end: "1960-08-31" }
+      ]
+    },
+    {
+      name: "4ªvez: José María Velasco Ibarra",
+      life: { start: "1893-03-19", end: "1979-03-30" },
+      terms: [
+        { start: "1960-09-01", end: "1961-11-07" }
+      ]
+    },
+    {
+      name: "++ Carlos Julio Arosemena Monroy",
+      life: { start: "1919-08-24", end: "2004-03-05" },
+      terms: [
+        { start: "1961-11-07", end: "1963-07-11" }
+      ]
+    },
+    {
+      name: "** Junta Militar: Ramón Castro Jijón",
+      life: { start: "1915-11-15", end: "1984-11-01" },
+      terms: [
+        { start: "1963-07-11", end: "1966-03-29" }
+      ]
+    },
+    {
+      name: "^, ++ Clemente Yerovi Indaburu",
+      life: { start: "1904-08-10", end: "1981-07-19" },
+      terms: [
+        { start: "1966-03-29", end: "1966-11-16" }
+      ]
+    },
+    {
+      name: "++ Otto Arosemena Gómez",
+      life: { start: "1892-05-08", end: "1983-10-03" },
+      terms: [
+        { start: "1966-11-16", end: "1968-08-31" }
+      ]
+    },
+    {
+      name: "5ª vez electo, ***: José María Velasco Ibarra",
+      life: { start: "1893-03-19", end: "1979-03-30" },
+      terms: [
+        { start: "1968-09-01", end: "1972-02-16" }
+      ]
+    },
+    {
+      name: "^ ** Guillermo Rodríguez Lara",
+      life: { start: "1923-11-04", end: null },
+      terms: [
+        { start: "1972-02-16", end: "1976-01-11" }
+      ]
+    },
+    {
+      name: "+ Consejo Supremo: Alfredo Poveda Burbano",
+      life: { start: "1926-01-24", end: "1990-06-07" },
+      terms: [
+        { start: "1976-01-11", end: "1979-08-10" }
+      ]
+    },
+    {
+      name: "Jaime Roldós Aguilera",
+      life: { start: "1940-11-05", end: "1981-05-24" },
+      terms: [
+        { start: "1979-08-10", end: "1981-05-24" }
+      ]
+    },
+    {
+      name: "++ Osvaldo Hurtado Larrea",
+      life: { start: "1939-06-26", end: null },
+      terms: [
+        { start: "1981-05-24", end: "1984-08-10" }
+      ]
+    },
+    {
+      name: "León Febres-Cordero Ribadeneyra",
+      life: { start: "1931-03-09", end: "2008-12-15" },
+      terms: [
+        { start: "1984-08-10", end: "1988-08-10" }
+      ]
+    },
+    {
+      name: "Rodrigo Borja Cevallos",
+      life: { start: "1935-06-19", end: "2025-12-18" },
+      terms: [
+        { start: "1988-08-10", end: "1992-08-10" }
+      ]
+    },
+    {
+      name: "Sixto Durán-Ballén",
+      life: { start: "1921-07-14", end: "2016-11-15" },
+      terms: [
+        { start: "1992-08-11", end: "1996-08-10" }
+      ]
+    },
+    {
+      name: "Abdalá Jaime Bucaram Ortiz",
+      life: { start: "1952-02-04", end: null },
+      terms: [
+        { start: "1996-08-10", end: "1997-02-06" }
+      ]
+    },
+    {
+      name: "¿+? Rosalía Arteaga Serrano",
+      life: { start: "1956-12-05", end: null },
+      terms: [
+        { start: "1997-02-09", end: "1997-02-11" }
+      ]
+    },
+    {
+      name: "¿^? Fabián Alarcón Rivera",
+      life: { start: "1947-04-14", end: null },
+      terms: [
+        { start: "1997-02-11", end: "1998-08-10" }
+      ]
+    },
+    {
+      name: "Jamil Mahuad Witt",
+      life: { start: "1949-07-29", end: null },
+      terms: [
+        { start: "1998-08-10", end: "2000-01-21" }
+      ]
+    },
+    {
+      name: "Gustavo José Joaquín Noboa Bejarano",
+      life: { start: "1937-08-21", end: "2021-02-16" },
+      terms: [
+        { start: "2000-01-22", end: "2003-01-15" }
+      ]
+    },
+    {
+      name: "Lucio Gutiérrez Borbúa",
+      life: { start: "1957-03-23", end: null },
+      terms: [
+        { start: "2003-01-15", end: "2005-04-20" }
+      ]
+    },
+    {
+      name: "Alfredo Palacio González",
+      life: { start: "1939-01-22", end: "2025-05-22" },
+      terms: [
+        { start: "2005-04-20", end: "2007-01-15" }
+      ]
+    },
+    {
+      name: "reelecto 2 veces: Rafael Vicente Correa Delgado",
+      life: { start: "1963-04-06", end: null },
+      terms: [
+        { start: "2007-01-15", end: "2017-05-24" }
+      ]
+    },
+    {
+      name: "Lenín Boltaire Moreno Garcés",
+      life: { start: "1953-03-19", end: null },
+      terms: [
+        { start: "2017-05-24", end: "2021-05-24" }
+      ]
+    },
+    {
+      name: "Guillermo Lasso Mendoza",
+      life: { start: "1955-11-16", end: null },
+      terms: [
+        { start: "2021-05-24", end: "2023-11-23" }
+      ]
+    },
+    {
+      name: "elección muerte cruzada: Daniel Noboa Azín",
+      life: { start: "1987-11-30", end: null },
+      terms: [
+        { start: "2023-11-23", end: "2025-05-24" }
+      ]
+    },
+    {
+      name: "Daniel Noboa Azín",
+      life: { start: "1987-11-30", end: null },
+      terms: [
+        { start: "2025-05-24", end: null }
+      ]
+    },
+  ];
+
+  // ALTURA DINÁMICA: Calculamos 40 píxeles de altura por cada persona más 100px de márgenes
+  const chartWrapper = document.getElementById('chart-wrapper');
+  chartWrapper.style.height = (people.length * 40 + 100) + 'px';
+
+  // Helper para convertir a fecha real y evitar errores
+  const toDate = (str) => {
+    if (!str || str === "presente") {
+    return luxon.DateTime.now().toJSDate();}
+    return luxon.DateTime.fromISO(str).toJSDate();}
+
+  const lifespanData = people.map(p => ({
+    x: [toDate(p.life.start), toDate(p.life.end)],
+    y: p.name
+  }));
+
+  const termsData = people.flatMap(p => p.terms.map(t => ({
+    x: [toDate(t.start), toDate(t.end)],
+    y: p.name
+  })));
+
+  const ctx = document.getElementById('timeline').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      datasets: [
+        {
+          label: 'Periodo de Vida',
+          data: lifespanData,
+          backgroundColor: 'rgba(0, 0, 0, 0.05)',
+          borderColor: 'rgba(0, 0, 0, 0.1)',
+          borderWidth: 1,
+          barThickness: 15 // Ligeramente más gruesa para mejor visualización
+        },
+        {
+          label: 'Presidencia',
+          data: termsData,
+          backgroundColor: '#0056b3',
+          borderColor: 'lightblue',
+          borderWidth: 1,
+          barThickness: 15
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'year',
+            displayFormats: { year: 'yyyy' }
+          },
+          min: toDate("1800-01-01"),
+          max: toDate("2027-01-01"),
+          ticks: {
+            stepSize: 5,
+            autoSkip: false
+          },
+          title: { display: true, text: 'Cronología (Años)' }
+        },
+        y: {
+          type: 'category',
+          labels: people.map(p => p.name),
+          ticks:{
+            autoSkip: false
+          }
+        }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const start = luxon.DateTime.fromJSDate(ctx.raw.x[0]).toFormat('yyyy');
+              const end = luxon.DateTime.fromJSDate(ctx.raw.x[1]).toFormat('yyyy');
+              return `${ctx.dataset.label}: ${start} - ${end}`;
+            }
+          }
+        }
+      }
+    }
+  });
+  </script>
+</body>
+</html>
+
+
